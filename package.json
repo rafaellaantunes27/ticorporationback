@@ -1,9 +1,0 @@
-{
-  "name": "ti-corporation-back",
-  "private": true,
-  "type": "module",
-  "version": "1.0.0",
-  "description": "API segura do TI Corporation EquipHub, compatível com Vercel e Supabase",
-  "scripts": { "test": "node --test tests/*.test.mjs", "check": "node --check api/index.js && node --check lib/core.mjs", "dev": "npx vercel dev" },
-  "engines": { "node": ">=20" }
-}

@@ -1,0 +1,16 @@
+# Handoff de fim de sessão (exemplo; copiar para handoff.md)
+
+## Onde parei
+CLI Python e API compartilham `src/dq/core.py`. Dataset original mantido no repositório.
+
+## Decisões não óbvias
+Leia ADR-001. Avisos de preço não reduzem a nota de qualidade.
+
+## O que tentei e não funcionou
+Preencha apenas com tentativas reais desta sessão.
+
+## Próximo passo exato
+Validar a publicação `/api/analyze` com o fixture via curl e verificar as métricas.
+
+## Arquivos relevantes
+`src/dq/core.py`, `api/index.py`, `data/vendas.csv`, `tests/`.

@@ -1,0 +1,7 @@
+---
+description: Testes para validação de dados
+alwaysApply: false
+globs:
+  - "tests/**/*.py"
+---
+Antes de escrever testes, use dados CSV em strings locais, datas estáticas e verifique o contrato `CheckResult.ok=True` quando o check não encontra problemas. Execute `pytest -q`.
