@@ -1,26 +1,28 @@
 # Spec 001 — Validação de qualidade de dados em vendas CSV
 
-## Objetivo
-Detectar e explicar anomalias por linha e coluna, sem modificar CSV fornecido.
+## Objetivo e origem
 
-## Origem
-`dq-projeto-alunos`: `README.md`, `data/vendas.csv`, `pyproject.toml`. Os checks adicionais são propostas de MVP para o dataset, não regras fornecidas no ZIP.
+Detectar anomalias por linha e coluna sem modificar o CSV fornecido. Origem: `dq-projeto-alunos` e `data/vendas.csv`; checks adicionais são propostas documentadas do MVP e não requisitos originais do ZIP do curso. A Aula 11 acrescentou CAs rastreáveis e verificação independente, sem alterar as regras de negócio.
 
-## Comportamento
-- Ao receber CSV válido com as 9 colunas, listar problema, linha física, coluna, valor e mensagem.
-- Se valor obrigatório estiver vazio ou `N/A`, registrar `ausente`.
-- Se linha for repetida, registrar `duplicata`; ID de venda duplicado registra `id_duplicado`.
-- Se quantidade não for inteiro positivo, registrar tipo/valor inválido.
-- Se preço não for número positivo em formato decimal com ponto, registrar tipo/valor inválido.
-- Datas devem obedecer `YYYY-MM-DD`; categorias devem seguir vocabulário padronizado.
-- Preço 3x acima/abaixo da mediana do mesmo produto gera **aviso**, nunca falha automática.
-- Cada check tem `.ok=True` quando não existem problemas.
-- CSV é recebido em memória; não há salvamento ou correção automática.
-- CSV vazio, cabeçalho inválido, arquivo maior que 2 MB ou mais de 10 mil linhas retornam erro claro.
+## Critérios de aceite
 
-## Critérios
-- `dq data/vendas.csv` imprime erros detectados.
-- `dq arquivo.csv --json` imprime o mesmo relatório legível por máquina.
-- `GET /api/health` responde 200.
-- `POST /api/analyze` responde JSON 200 com problemas por linha/coluna ou 422 para CSV inválido.
-- `pytest -q` passa sem ler `data/vendas.csv` nos testes unitários.
+- **CA-B01 [back]**: CSV válido com as nove colunas gera relatório com contagens e `.ok=True` quando não há problema.
+- **CA-B02 [back]**: valor obrigatório ausente, vazio ou `N/A` é apontado por linha e coluna.
+- **CA-B03 [back]**: linha duplicada e ID de venda duplicado são detectados independentemente.
+- **CA-B04 [back]**: quantidade não inteira/positiva e preço fora do formato decimal positivo geram erro claro.
+- **CA-B05 [back]**: datas fora de `YYYY-MM-DD` e categorias não padronizadas são marcadas.
+- **CA-B06 [back]**: preço discrepante do mesmo produto é apenas aviso e não reduz métrica de erros.
+- **CA-B07 [back]**: análise é somente leitura, não altera bytes recebidos nem grava arquivo.
+- **CA-B08 [back]**: CSV vazio, colunas inválidas e arquivo acima de 2 MB são rejeitados claramente.
+- **CA-B09 [back]**: CLI `dq <arquivo> --json` produz relatório JSON consumível por scripts.
+- **CA-B10 [back]**: `/api/health` responde e `/api/analyze` retorna JSON 200 em arquivo válido ou 4xx em arquivo inválido.
+- **CA-F01 [front]**: o login azul é a tela inicial (prova em `ticorporationfront`).
+- **CA-F04 [front]**: o painel exibe diagnóstico do CSV (prova em `ticorporationfront`).
+
+## Fora de escopo
+
+Persistência em banco, escrita ou reparação automática do CSV, login real, cadastros de equipamentos e upload de dados privados reais.
+
+## Protocolo de aceite
+
+Todos os CAs precisam de teste citando o ID, checks locais aprovados e duas rodadas independentes do verificador (`front` + `back`) com relatório unificado antes de declarar a spec PRONTA. `OUTRO REPOSITÓRIO` não equivale a ATENDIDO no relatório consolidado.
