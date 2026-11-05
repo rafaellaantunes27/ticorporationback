@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum UserRole {
+  COLLABORATOR
+  OPERATIONS
+}
+
+enum EquipmentStatus {
+  AVAILABLE
+  BORROWED
+  MAINTENANCE
+}
+
+enum LoanStatus {
+  ACTIVE
+  OVERDUE
+  RETURNED
+}
+
+model User {
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String   @unique
+  name      String
+  role      UserRole @default(COLLABORATOR)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  loans Loan[]
+
+  @@map("users")
+}
+
+model Equipment {
+  id          String           @id @default(uuid()) @db.Uuid
+  name        String
+  category    String
+  assetTag    String?          @unique @map("asset_tag")
+  status      EquipmentStatus  @default(AVAILABLE)
+  observations String?
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  loans Loan[]
+
+  @@map("equipment")
+}
+
+model Loan {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  equipmentId String    @map("equipment_id") @db.Uuid
+  borrowedAt  DateTime  @default(now()) @map("borrowed_at")
+  dueDate     DateTime  @map("due_date")
+  returnedAt  DateTime? @map("returned_at")
+  status      LoanStatus @default(ACTIVE)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  equipment Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([equipmentId])
+  @@index([status])
+  @@map("loans")
+}
