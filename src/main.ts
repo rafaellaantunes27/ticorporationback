@@ -217,5 +217,6 @@ async function bootstrap() {
   await app.listen(Number(process.env.PORT) || 3001, '0.0.0.0');
 }
 
-if (require.main === module) bootstrap();
+// A Vercel executa este entrypoint como módulo, portanto inicializamos sem depender de require.main.
+void bootstrap();
 export { AppModule, SupabaseTokenGuard, HealthController, ApiController };
