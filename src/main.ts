@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import type { IncomingMessage, ServerResponse } from 'node:http';
 import {
   Body, CanActivate, Controller, ExecutionContext, Get, HttpException, HttpStatus,
   Injectable, Module, Param, Post, Req, UseGuards,
@@ -207,16 +208,41 @@ class ApiController {
 @Module({ controllers: [HealthController, ApiController], providers: [DatabaseService, SupabaseTokenGuard] })
 class AppModule {}
 
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  const origins = new Set((process.env.CORS_ORIGIN || 'http://localhost:5173').split(',').map((value) => value.trim()).filter(Boolean));
+/** Habilita CORS nas duas formas de execução: CLI local e Vercel Functions. */
+function configureCors(app: Awaited<ReturnType<typeof NestFactory.create>>): void {
+  const origins = new Set((process.env.CORS_ORIGIN || 'http://localhost:5173')
+    .split(',').map((value) => value.trim()).filter(Boolean));
   app.enableCors({
-    origin: (origin, callback) => { if (!origin || origins.has(origin)) return callback(null, true); return callback(new Error('Origem não autorizada.'), false); },
-    methods: 'GET,POST,OPTIONS', allowedHeaders: 'Authorization,Content-Type',
+    origin: (origin, callback) => {
+      if (!origin || origins.has(origin)) return callback(null, true);
+      return callback(new Error('Origem não autorizada.'), false);
+    },
+    methods: 'GET,POST,OPTIONS',
+    allowedHeaders: 'Authorization,Content-Type',
   });
+}
+
+async function bootstrap(): Promise<void> {
+  const app = await NestFactory.create(AppModule);
+  configureCors(app);
   await app.listen(Number(process.env.PORT) || 3001, '0.0.0.0');
 }
 
-// A Vercel executa este entrypoint como módulo, portanto inicializamos sem depender de require.main.
-void bootstrap();
+/**
+ * Vercel importa a entrada como função (req, res). Inicializamos o Nest uma única vez,
+ * sem abrir porta, e reutilizamos a instância Express entre chamadas da função.
+ */
+let serverPromise: Promise<(req: IncomingMessage, res: ServerResponse) => void> | undefined;
+async function createServerHandler(): Promise<(req: IncomingMessage, res: ServerResponse) => void> {
+  const app = await NestFactory.create(AppModule);
+  configureCors(app);
+  await app.init();
+  return app.getHttpAdapter().getInstance() as (req: IncomingMessage, res: ServerResponse) => void;
+}
+export default async function handler(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  const server = await (serverPromise ??= createServerHandler());
+  server(req, res);
+}
+
+if (require.main === module) void bootstrap();
 export { AppModule, SupabaseTokenGuard, HealthController, ApiController };
