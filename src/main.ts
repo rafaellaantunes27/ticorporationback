@@ -106,8 +106,22 @@ class HealthController {
 class ApiController {
   constructor(private readonly database: DatabaseService) {}
 
+  @Get('me')
+  async me(@Req() req: AuthenticatedRequest) {
+    const user = await this.database.db.user.findUnique({ where: { email: req.identity.email } });
+    if (!user) throw new HttpException('Perfil não cadastrado em users.', 403);
+    return { id: user.id, email: user.email, name: user.name, role: user.role };
+  }
+
+  private async requireOperations(req: AuthenticatedRequest) {
+    const operator = await this.database.db.user.findUnique({ where: { email: req.identity.email } });
+    if (!operator || operator.role !== 'OPERATIONS') throw new HttpException('Acesso restrito a Operações.', 403);
+  }
+
   @Get('equipment')
-  async equipment() {
+  async equipment(@Req() req: AuthenticatedRequest) {
+    const profile = await this.database.db.user.findUnique({ where: { email: req.identity.email } });
+    const showLoanOwner = profile?.role === 'OPERATIONS';
     const rows = await this.database.db.equipment.findMany({
       include: { loans: { where: { returnedAt: null }, include: { user: true }, orderBy: { borrowedAt: 'desc' }, take: 1 } },
       orderBy: { name: 'asc' },
@@ -117,8 +131,10 @@ class ApiController {
       const loan = item.loans[0];
       return {
         id: item.id, name: item.name, category: item.category, asset: item.assetTag,
+        photoUrl: item.photoUrl, photoSourceUrl: item.photoSourceUrl,
+        photoAuthor: item.photoAuthor, photoLicense: item.photoLicense,
         status: loan ? loanStatus(loan, now) : item.status.toLowerCase(),
-        note: item.observations || '', owner: loan?.user.name || null,
+        note: item.observations || '', owner: showLoanOwner ? loan?.user.name || null : null,
         dueDate: loan?.dueDate?.toISOString() || null,
       };
     });
@@ -139,7 +155,8 @@ class ApiController {
   }
 
   @Get('loans/open')
-  async openLoans() {
+  async openLoans(@Req() req: AuthenticatedRequest) {
+    await this.requireOperations(req);
     const loans = await this.database.db.loan.findMany({
       where: { returnedAt: null }, include: { equipment: true, user: true }, orderBy: { borrowedAt: 'desc' },
     });
@@ -179,7 +196,8 @@ class ApiController {
   }
 
   @Post('loans/:id/return')
-  async returnLoan(@Param('id') id: string) {
+  async returnLoan(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
+    await this.requireOperations(req);
     if (!/^[a-f0-9-]{36}$/i.test(id)) badRequest('Empréstimo inválido.');
     return this.database.db.$transaction(async (tx) => {
       const loan = await tx.loan.findUnique({ where: { id } });
@@ -193,7 +211,8 @@ class ApiController {
   }
 
   @Post('equipment')
-  async registerEquipment(@Body() body: { name?: unknown; category?: unknown; asset?: unknown; observations?: unknown; status?: unknown }) {
+  async registerEquipment(@Req() req: AuthenticatedRequest, @Body() body: { name?: unknown; category?: unknown; asset?: unknown; observations?: unknown; status?: unknown }) {
+    await this.requireOperations(req);
     const parsed = createEquipmentSchema.safeParse(body);
     if (!parsed.success) badRequest('Dados inválidos. Verifique nome, categoria, patrimônio e situação.');
     const input = parsed.data;

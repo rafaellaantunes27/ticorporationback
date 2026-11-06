@@ -45,6 +45,11 @@ model Equipment {
   assetTag    String?          @unique @map("asset_tag")
   status      EquipmentStatus  @default(AVAILABLE)
   observations String?
+  photoUrl String?          @map("photo_url")
+  photoSourceUrl String?    @map("photo_source_url")
+  photoAuthor String?       @map("photo_author")
+  photoId String?           @unique @map("photo_id")
+  photoLicense String?      @map("photo_license")
   createdAt   DateTime         @default(now()) @map("created_at")
   updatedAt   DateTime         @updatedAt @map("updated_at")
 
