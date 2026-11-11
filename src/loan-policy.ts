@@ -1,7 +1,7 @@
 /** Regra de negócio pura: dias úteis = segunda a sexta, sem feriados customizados.
  * Datas preservam a hora UTC da solicitação para previsibilidade no servidor.
  */
-export const MAX_ACTIVE_LOANS = 4;
+export const MAX_ACTIVE_LOANS = 5;
 export const LOAN_DURATION_BUSINESS_DAYS = 14;
 export type OpenLoan = { dueDate: Date | string; returnedAt?: Date | string | null };
 export function activeLoans(loans: OpenLoan[]): OpenLoan[] {
